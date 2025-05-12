@@ -230,8 +230,6 @@ char *multi_home;
 int multi_uid;
 int own_uid;
 int multiattach;
-int tty_mode;
-int tty_oldmode = -1;
 #endif
 
 char HostName[MAXSTR];
@@ -1009,9 +1007,6 @@ int main(int ac, char** av)
 
     /* ttyname implies isatty */
     SetTtyname(true, &st);
-#ifdef MULTIUSER
-    tty_mode = (int)st.st_mode & 0777;
-#endif
 
     fl = fcntl(0, F_GETFL, 0);
     if (fl != -1 && (fl & (O_RDWR|O_RDONLY|O_WRONLY)) == O_RDWR)
@@ -2170,20 +2165,6 @@ DEFINE_VARARGS_FN(Panic)
       if (D_userpid)
         Kill(D_userpid, SIG_BYE);
     }
-#ifdef MULTIUSER
-  if (tty_oldmode >= 0) {
-
-# ifdef USE_SETEUID
-    if (setuid(own_uid))
-      xseteuid(own_uid);	/* may be a loop. sigh. */
-# else
-      setuid(own_uid);
-# endif
-
-    debug1("Panic: changing back modes from %s\n", attach_tty);
-    chmod(attach_tty, tty_oldmode);
-  }
-#endif
   eexit(1);
 }
 
