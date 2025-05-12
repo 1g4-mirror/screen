@@ -1122,15 +1122,28 @@ int main(int ac, char** av)
 #endif
   }
 
-  if (stat(SockPath, &st) == -1)
-    Panic(errno, "Cannot access %s", SockPath);
-  else
-    if (!S_ISDIR(st.st_mode))
+  if (stat(SockPath, &st) == -1) {
+    if (eff_uid == real_uid) {
+      Panic(errno, "Cannot access %s", SockPath);
+    } else {
+      Panic(0, "Error accessing %s", SockPath);
+    }
+  } else if (!S_ISDIR(st.st_mode)) {
+    if (eff_uid == real_uid || st.st_uid == real_uid) {
       Panic(0, "%s is not a directory.", SockPath);
+    } else {
+      Panic(0, "Error accessing %s", SockPath);
+    }
+  }
 #ifdef MULTIUSER
   if (multi) {
-    if ((int)st.st_uid != multi_uid)
-      Panic(0, "%s is not the owner of %s.", multi, SockPath);
+    if ((int)st.st_uid != multi_uid) {
+      if (eff_uid == real_uid || st.st_uid == real_uid) {
+        Panic(0, "%s is not the owner of %s.", multi, SockPath);
+      } else {
+        Panic(0, "Error accessing %s", SockPath);
+      }
+    }
   }
   else
 #endif
@@ -1144,9 +1157,13 @@ int main(int ac, char** av)
       Panic(0, "You are not the owner of %s.", SockPath);
 #endif
   }
-
-  if ((st.st_mode & 0777) != 0700)
-    Panic(0, "Directory %s must have mode 700.", SockPath);
+  if ((st.st_mode & 0777) != 0700) {
+    if (eff_uid == real_uid || st.st_uid == real_uid) {
+      Panic(0, "Directory %s must have mode 700.", SockPath);
+    } else {
+      Panic(0, "Error accessing %s", SockPath);
+    }
+  }
   if (SockMatch && index(SockMatch, '/'))
     Panic(0, "Bad session name '%s'", SockMatch);
   SockName = SockPath + strlen(SockPath) + 1;
@@ -1184,8 +1201,14 @@ int main(int ac, char** av)
       else
         exit(9 + (fo || oth ? 1 : 0) + fo);
     }
-    if (fo == 0)
-      Panic(0, "No Sockets found in %s.\n", SockPath);
+    if (fo == 0) {
+      if (eff_uid == real_uid || st.st_uid == real_uid) {
+        Panic(0, "No Sockets found in %s.\n", SockPath);
+      } else {
+        Panic(0, "Error accessing %s", SockPath);
+      }
+    }
+
     Msg(0, "%d Socket%s in %s.", fo, fo > 1 ? "s" : "", SockPath);
     eexit(0);
   }

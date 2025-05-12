@@ -169,8 +169,13 @@ bool *is_sock;
   xsetegid(real_gid);
 #endif
 
-  if ((dirp = opendir(SockPath)) == 0)
-    Panic(errno, "Cannot opendir %s", SockPath);
+  if ((dirp = opendir(SockPath)) == 0) {
+    if (eff_uid == real_uid) {
+      Panic(errno, "Cannot opendir %s", SockPath);
+    } else {
+      Panic(0, "Error accessing %s", SockPath);
+    }
+  }
 
   slist = 0;
   slisttail = &slist;
