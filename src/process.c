@@ -6009,7 +6009,7 @@ char *AddWindows(WinMsgBufContext *wmbc, int len, int flags, int where)
 	cur = GetWindowByNumber(where);
 
 	for (win = (flags & 4) ? cur->w_next : first_window; win; win = win->w_next) {
-		int rend = -1;
+		uint64_t rend = 0;
 		if (win == cur && ss == buf)
 			ss = s;
 		if (win == NULL)
@@ -6041,7 +6041,7 @@ char *AddWindows(WinMsgBufContext *wmbc, int len, int flags, int where)
 		else if ((win->w_silence == SILENCE_FOUND || win->w_silence == SILENCE_DONE)
 			 && renditions[REND_SILENCE] != 0)
 			rend = renditions[REND_SILENCE];
-		if (rend != -1)
+		if (rend != 0)
 			AddWinMsgRend(wmbc->buf, s, rend);
 		sprintf(s, "%d", win->w_number);
 		s += strlen(s);
@@ -6051,7 +6051,7 @@ char *AddWindows(WinMsgBufContext *wmbc, int len, int flags, int where)
 		*s++ = ' ';
 		strncpy(s, cmd, l);
 		s += l;
-		if (rend != -1)
+		if (rend != 0)
 			AddWinMsgRend(wmbc->buf, s, 0);
 	}
 	*s = 0;
