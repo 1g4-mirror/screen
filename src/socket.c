@@ -83,6 +83,7 @@
 #include "utmp.h"
 
 static int CheckPid(pid_t);
+static int ValidateDetachRequest(Message *);
 static void ExecCreate(Message *);
 static void DoCommandMsg(Message *);
 static void FinishAttach(Message *);
@@ -573,6 +574,20 @@ static int CheckPid(pid_t pid)
 	return UserStatus();
 }
 
+static int ValidateDetachRequest(Message *m)
+{
+	pid_t pid;
+
+	if (m->type != MSG_DETACH && m->type != MSG_POW_DETACH)
+		return -1;
+	pid = m->m.detach.dpid;
+	if (CheckPid(pid)) {
+		Msg(0, "Detach attempt with bad pid(%d)!", pid);
+		return -1;
+	}
+	return 0;
+}
+
 static int CreateTempDisplay(Message *m, int recvfd, Window *win)
 {
 	pid_t pid;
@@ -865,12 +880,15 @@ void ReceiveMsg(void)
 		break;
 	case MSG_DETACH:
 	case MSG_POW_DETACH:
-		if (CreateTempDisplay(&m, recvfd, NULL))
-			break;
-		if (do_auth)
+		if (do_auth) {
+			if (CreateTempDisplay(&m, recvfd, NULL))
+				break;
 			AskPassword(&m);
-		else
-			FinishAttach(&m);
+		} else {
+			if (ValidateDetachRequest(&m))
+				break;
+			FinishDetach(&m);
+		}
 		break;
 	case MSG_QUERY:
 		{
